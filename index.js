@@ -14,26 +14,34 @@ const openai = new OpenAI({
 app.post('/analisar', async (req, res) => {
   const { criterios, texto } = req.body;
 
-  if (!criterios || !texto) {
-    return res.status(400).json({ erro: 'Critérios e texto são obrigatórios.' });
+  // Validação
+  if (!Array.isArray(criterios) || criterios.length === 0 || !texto) {
+    return res.status(400).json({ erro: 'Critérios (array) e texto são obrigatórios.' });
   }
 
+  // Construção do prompt
+  const listaCriterios = criterios
+    .map((criterio, index) => `${index + 1}. ${criterio}`)
+    .join('\n');
+
   const prompt = `
-Considere os seguintes critérios para avaliar um texto de vestibular:
-${criterios.map((c, i) => `${i + 1}. ${c}`).join('\n')}
+Você é um avaliador de redações de vestibular. 
+Considere os seguintes critérios de avaliação:
+${listaCriterios}
 
-Analise o seguinte texto com base nesses critérios e diga:
-- O que o texto entrega
-- O que não entrega
-- Justifique cada ponto
+Com base nesses critérios, analise o seguinte texto:
 
-Texto:
 "${texto}"
+
+Responda:
+- O que o texto entrega
+- O que o texto não entrega
+- Justifique cada ponto de forma clara e objetiva
   `;
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4', // ou gpt-3.5-turbo
+      model: 'gpt-4',
       messages: [{ role: 'user', content: prompt }],
     });
 
